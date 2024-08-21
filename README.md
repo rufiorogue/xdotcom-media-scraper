@@ -16,3 +16,8 @@ poetry install
 x_media_scraper --user=TWITTER_USER_ID --cache-directory=cache --output-directory=out
 ```
 
+## selenium.common.exceptions.TimeoutException
+
+At some point you will face the Elmo's notorious rate-limiter. The website just stops returning any meaningful data
+and then you get the above exception. In such case simply run the application again and it will pick where it left.
+To force re-download existing items again delete the file `cache/visited.sqlite3`.
