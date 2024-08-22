@@ -25,27 +25,30 @@ class Scraper:
     def __init__(self, cache_directory: str):
         self._cache_directory = cache_directory
 
-    def create_web_driver(self) -> webdriver.Chrome:
+    def create_web_driver(self,  headless: bool) -> webdriver.Chrome:
         options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--start-maximized')
         options.add_argument(f'--user-data-dir={self._cache_directory}/chrome_data')
-        options.page_load_strategy = 'eager' # we need just DOM, don't wait for images to load
+        if headless:
+            options.add_argument('--headless')
+            options.add_argument('--start-maximized')
+            options.page_load_strategy = 'eager' # we need just DOM, don't wait for images to load
         driver = webdriver.Chrome(options=options)
         return driver
 
 
-    def with_scoped_driver(fn):
-        def inner(self, *args, **kwargs):
-            driver = self.create_web_driver()
-            try:
-                result = fn(self, *args, **kwargs, driver=driver)
-            finally:
-                driver.quit()
-            return result
-        return inner
+    def with_scoped_driver(headless: bool):
+        def outer(fn):
+            def inner(self, *args, **kwargs):
+                driver = self.create_web_driver(headless=headless)
+                try:
+                    result = fn(self, *args, **kwargs, driver=driver)
+                finally:
+                    driver.quit()
+                return result
+            return inner
+        return outer
 
-    @with_scoped_driver
+    @with_scoped_driver(headless=True)
     def get_statuses_with_media(self, user: str, driver) -> list[str]:
         """Get statuses with mediafiles
 
@@ -81,7 +84,7 @@ class Scraper:
         status_urls = [ x for x in status_urls if 'status' in x ] # filter some stray shit
         return status_urls
 
-    @with_scoped_driver
+    @with_scoped_driver(headless=True)
     def get_status_media_resources(self, status_url: str, driver) -> list[str]:
         """Get mediafile resource URL from status with mediafiles
 
